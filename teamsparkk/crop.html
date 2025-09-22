@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Crop Care — Prototype</title>
+<style>
+  :root{
+    --primary:#2e8b57;
+    --accent:#ffd166;
+    --bg:#f6fff6;
+    --card:#ffffff;
+    --muted:#6b6b6b;
+    --glass: rgba(255,255,255,0.85);
+    --shadow: 0 6px 18px rgba(10,10,10,0.12);
+    --nav-height:72px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    background: linear-gradient(180deg, #f0fff4 0%, #e8fff0 100%);
+    color:#123;
+  }
+  /* full-screen language selector */
+  #language-screen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    padding:28px;
+    background: linear-gradient(0deg, rgba(255,255,255,0.5), rgba(255,255,255,0.2));
+    z-index:40;
+  }
+  #language-screen h1{
+    margin:0;
+    font-size:28px;
+    color:var(--primary);
+    text-shadow:0 1px 0 rgba(255,255,255,0.6);
+  }
+  .lang-grid{
+    width:100%;
+    max-width:980px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;
+  }
+  .lang-btn{
+    background:var(--card);
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.06);
+    padding:12px;
+    cursor:pointer;
+    font-weight:600;
+    box-shadow:var(--shadow);
+    text-align:center;
+    transition:transform .12s ease, box-shadow .12s;
+  }
+  .lang-btn:hover{ transform:translateY(-4px); box-shadow: 0 12px 24px rgba(10,10,10,0.12); }
+
+  /* main app layout */
+  .app{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  header.app-header{
+    height:64px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .app-title{ font-weight:700; color:var(--primary); font-size:18px; display:flex; align-items:center; gap:10px; }
+  .three-dots{
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    cursor:pointer;
+    background:var(--card);
+    border:1px solid rgba(0,0,0,0.06);
+  }
+
+  /* menu */
+  .menu{
+    position: absolute;
+    right:16px;
+    top:72px;
+    background:var(--glass);
+    padding:8px;
+    border-radius:10px;
+    box-shadow: var(--shadow);
+    display:none;
+    min-width:220px;
+    z-index:30;
+  }
+  .menu.show{ display:block; }
+  .menu button{ display:block; width:100%; border:0; background:none; padding:10px 12px; text-align:left; cursor:pointer; font-weight:600; }
+  .menu button:hover{ background:rgba(0,0,0,0.03); }
+
+  main.content{
+    flex:1;
+    padding:18px;
+    padding-bottom: calc(var(--nav-height) + 18px);
+  }
+
+  /* card */
+  .card{
+    background:var(--card);
+    padding:18px;
+    border-radius:12px;
+    box-shadow: var(--shadow);
+    border:1px solid rgba(0,0,0,0.04);
+  }
+
+  /* options grid */
+  .options-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:14px;
+    margin-top:14px;
+  }
+  label{ display:block; font-weight:600; margin-bottom:6px; color:var(--muted); }
+  select, input[type="number"], input[type="text"], textarea{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,0.08);
+    background:#fff;
+    outline:none;
+    font-size:14px;
+  }
+
+  .controls-row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+
+  /* bottom nav */
+  .bottom-nav{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    height:var(--nav-height);
+    background:linear-gradient(90deg, rgba(255,255,255,0.98), rgba(255,255,255,0.9));
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.06);
+    z-index:20;
+    border-top-left-radius:12px;
+    border-top-right-radius:12px;
+  }
+  .nav-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    cursor:pointer;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+  }
+  .nav-item.active{ color:var(--primary); }
+
+  .result-box{ margin-top:14px; padding:12px; border-radius:10px; background:linear-gradient(180deg,#fff,#fbfffb); border:1px solid rgba(0,0,0,0.03); }
+
+  /* mic button */
+  .mic-btn{
+    position:relative;
+    width:54px;
+    height:54px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid var(--primary);
+    background:linear-gradient(180deg,#fff,#f6fff6);
+    cursor:pointer;
+    box-shadow: 0 10px 24px rgba(46,139,87,0.08);
+  }
+  .mic-icon{ font-size:22px; color:var(--primary); }
+  /* pulsing when listening */
+  .mic-btn.listening{
+    animation:micPulse 1s infinite;
+    box-shadow: 0 10px 30px rgba(46,139,87,0.18);
+  }
+  @keyframes micPulse{
+    0%{ transform:scale(1); }
+    50%{ transform:scale(1.06); }
+    100%{ transform:scale(1); }
+  }
+
+  /* small util */
+  .muted-note{ color:#d33; font-weight:700; font-size:13px; }
+  .flex-between{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+  /* responsive */
+  @media (max-width:640px){
+    .lang-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+  <div id="language-screen" aria-hidden="false">
+    <h1>Select a language </h1>
+    <div class="lang-grid" id="langGrid"></div>
+    <div style="margin-top:12px; color:var(--muted); font-size:13px; text-align:center;">
+      Choose one language to start. The assistant will speak in that language (if supported by your browser).
+    </div>
+  </div>
+
+  <div class="app" id="app" aria-hidden="true" style="display:none;">
+    <header class="app-header">
+      <div class="app-title"><span style="font-size:20px;">🌾</span> <span>Crop Care</span></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div id="selectedLanguageDisplay" style="font-weight:600; color:var(--muted); font-size:14px;"></div>
+        <div class="three-dots" id="threeDotsBtn" title="Menu">⋮</div>
+      </div>
+
+      <div class="menu" id="menu">
+        <button id="menuChangeLang">Change language</button>
+        <button id="menuToggleMute">Mute voice</button>
+        <button id="menuTerms">Terms & Conditions</button>
+        <button id="menuSettings">Settings</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Main content area (swapped by bottom nav) -->
+      <div id="mainArea">
+        <!-- Home / Recommendation page -->
+        <section id="homePage" class="card">
+          <div class="flex-between">
+            <div>
+              <div style="font-size:16px; font-weight:800;">Crop Care</div>
+              <div style="font-size:12px; color:var(--muted); margin-top:6px;">AI-based crop recommendation (prototype)</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div id="muteIndicator" class="muted-note" style="display:none;">Muted</div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div class="mic-btn" id="voiceChatBtn" title="Voice chat / give inputs by voice">
+                  <svg class="mic-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14c1.657 0 3-1.343 3-3V5c0-1.657-1.343-3-3-3s-3 1.343-3 3v6c0 1.657 1.343 3 3 3z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19 11v1a7 7 0 01-14 0v-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 20v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div style="font-size:12px; color:var(--muted);">Voice chat</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="options-grid" style="margin-top:18px;">
+            <div class="card">
+              <label for="soilType">Soil type</label>
+              <select id="soilType">
+                <option value="loamy">Loamy</option>
+                <option value="clay">Clay</option>
+                <option value="sandy">Sandy</option>
+                <option value="silty">Silty</option>
+                <option value="peaty">Peaty</option>
+              </select>
+
+              <label style="margin-top:10px;" for="season">Weather / Season</label>
+              <select id="season">
+                <option value="kharif">Kharif (monsoon)</option>
+                <option value="rabi">Rabi (winter)</option>
+                <option value="summer">Summer</option>
+                <option value="autumn">Autumn</option>
+              </select>
+            </div>
+
+            <div class="card">
+              <label>Farm data</label>
+              <div style="margin-bottom:10px;">
+                <label for="landArea">Land area (hectares)</label>
+                <input id="landArea" type="number" step="0.01" min="0" value="1" />
+              </div>
+
+              <div style="margin-bottom:8px;">
+                <label>Water availability</label>
+                <select id="waterLevel">
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+
+              <div style="margin-top:8px;">
+                <button id="recommendBtn" class="card" style="cursor:pointer; background:linear-gradient(90deg,var(--primary), #2bb273); color:white; border-radius:8px; padding:10px; font-weight:800; text-align:center;">
+                  Recommend a crop
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="recommendResult" class="result-box" style="display:none;"></div>
+        </section>
+
+        <!-- Calculator page -->
+        <section id="calculatorPage" class="card" style="display:none;">
+          <div style="font-size:16px; font-weight:800;">Calculator</div>
+          <div style="margin-top:8px; color:var(--muted);">Calculate expected profit and fertilizer/pesticide needs.</div>
+
+          <div style="margin-top:12px;" class="options-grid">
+            <div>
+              <label for="calcCrop">Crop</label>
+              <select id="calcCrop"></select>
+
+              <label for="seedRate" style="margin-top:8px;">Seed rate (kg/ha) — default per chosen crop</label>
+              <input id="seedRate" type="number" step="0.1" value="50" />
+
+              <label for="fertPerHa" style="margin-top:8px;">Fertilizer (kg/ha) — combined NPK</label>
+              <input id="fertPerHa" type="number" step="0.1" value="100" />
+            </div>
+
+            <div>
+              <label for="expectedYield">Expected yield (kg/ha)</label>
+              <input id="expectedYield" type="number" step="0.1" value="3000" />
+
+              <label for="marketPrice" style="margin-top:8px;">Market price (per kg)</label>
+              <input id="marketPrice" type="number" step="0.01" value="1" />
+
+              <label for="inputCostPerHa" style="margin-top:8px;">Input cost per ha (seeds+fert+pesticide etc)</label>
+              <input id="inputCostPerHa" type="number" step="0.1" value="200" />
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <button id="runCalc" style="background:var(--accent); border-radius:10px; padding:10px 14px; font-weight:800; border:0; cursor:pointer;">Run calculation</button>
+          </div>
+
+          <div id="calcResult" class="result-box" style="display:none;"></div>
+        </section>
+
+        <!-- Feedback page -->
+        <section id="feedbackPage" class="card" style="display:none;">
+          <div style="font-size:16px; font-weight:800;">Feedback</div>
+          <div style="margin-top:8px; color:var(--muted);">We value your feedback about this app prototype.</div>
+          <div style="margin-top:10px;">
+            <label for="fbText">Your feedback</label>
+            <textarea id="fbText" rows="5" placeholder="Write here..."></textarea>
+          </div>
+          <div style="margin-top:10px;">
+            <button id="sendFb" style="background:var(--primary); color:white; padding:10px 12px; border-radius:8px; border:0; cursor:pointer;">Send feedback</button>
+          </div>
+        </section>
+
+        <!-- Profile page -->
+        <section id="profilePage" class="card" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:16px; font-weight:800;">Farmer Profile</div>
+              <div style="margin-top:6px; color:var(--muted);">Details about the farmer</div>
+            </div>
+            <div>
+              <div style="font-size:12px; color:var(--muted);">App version 0.1</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label for="farmerName">Name</label>
+            <input id="farmerName" type="text" placeholder="Farmer name" />
+
+            <label for="farmLocation" style="margin-top:8px;">Location</label>
+            <input id="farmLocation" type="text" placeholder="Village, District, State" />
+
+            <label for="farmerPhone" style="margin-top:8px;">Phone</label>
+            <input id="farmerPhone" type="text" placeholder="Optional" />
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- bottom nav -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <div class="nav-item active" id="navHome" data-target="homePage">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 11.5L12 4l9 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 21V13h10v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>Home</div>
+      </div>
+
+      <div class="nav-item" id="navCalc" data-target="calculatorPage">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="12" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 7h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <div>Calculator</div>
+      </div>
+
+      <div class="nav-item" id="navFeedback" data-target="feedbackPage">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H8l-5 3V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6"/></svg>
+        <div>Feedback</div>
+      </div>
+
+      <div class="nav-item" id="navProfile" data-target="profilePage">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6"/><path d="M21 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.6"/></svg>
+        <div>Profile</div>
+      </div>
+    </nav>
+  </div>
+
+<script>
+/*
+  Crop Care prototype script
+  - Languages list + mapping
+  - Speech Synthesis and Recognition integration
+  - Menu actions, mute/unmute, change language
+  - Recommendation rules (simple heuristic)
+  - Calculator logic
+  - UI navigation
+*/
+
+/* ========== Language data ========== */
+const LANGUAGES = [
+  { name: "Telugu", code:"te-IN" },
+  { name: "English", code:"en-IN" },
+  { name: "Hindi", code:"hi-IN" },
+  { name: "Bengali", code:"bn-IN" },
+  { name: "Malayalam", code:"ml-IN" },
+  { name: "Kannada", code:"kn-IN" },
+  { name: "Odia", code:"or-IN" },
+  { name: "Punjabi", code:"pa-IN" },
+  { name: "Assamese", code:"as-IN" },
+  { name: "Maithili", code:"mai-IN" },
+  { name: "Sanskrit", code:"sa-IN" },
+  { name: "Konkani", code:"kok-IN" },
+  { name: "Sindhi", code:"sd-IN" },
+  { name: "Dogri", code:"doi-IN" },
+  { name: "Manipuri", code:"mni-IN" },
+  { name: "Bodo", code:"brx-IN" },
+  { name: "Nepali", code:"ne-NP" },
+  { name: "Santali", code:"sat-IN" },
+  { name: "Kashmiri", code:"ks-IN" },
+  { name: "Tulu", code:"tcy-IN" },
+  { name: "Bhojpuri", code:"bho-IN" },
+  { name: "Awadhi", code:"awa-IN" },
+  { name: "Haryanvi", code:"bgc-IN" }
+];
+
+/* NOTE:
+   - Some loc codes above may not be supported in browser voices. Code uses what is available,
+     falling back to a voice whose lang starts with the same prefix, or the default voice.
+*/
+
+let selectedLanguage = LANGUAGES[1]; // default English
+let isMuted = false;
+let voices = [];
+let selectedVoice = null;
+
+/* ========== DOM refs ========== */
+const languageScreen = document.getElementById('language-screen');
+const langGrid = document.getElementById('langGrid');
+const appDiv = document.getElementById('app');
+const selectedLanguageDisplay = document.getElementById('selectedLanguageDisplay');
+const threeDotsBtn = document.getElementById('threeDotsBtn');
+const menu = document.getElementById('menu');
+const menuChangeLang = document.getElementById('menuChangeLang');
+const menuToggleMute = document.getElementById('menuToggleMute');
+const menuTerms = document.getElementById('menuTerms');
+const menuSettings = document.getElementById('menuSettings');
+const muteIndicator = document.getElementById('muteIndicator');
+
+const voiceChatBtn = document.getElementById('voiceChatBtn');
+const recommendBtn = document.getElementById('recommendBtn');
+const recommendResult = document.getElementById('recommendResult');
+
+const navItems = document.querySelectorAll('.nav-item');
+const mainArea = document.getElementById('mainArea');
+
+/* Calculator refs */
+const calcCropSelect = document.getElementById('calcCrop');
+const seedRateInput = document.getElementById('seedRate');
+const fertPerHaInput = document.getElementById('fertPerHa');
+const expectedYieldInput = document.getElementById('expectedYield');
+const marketPriceInput = document.getElementById('marketPrice');
+const inputCostPerHaInput = document.getElementById('inputCostPerHa');
+const runCalcBtn = document.getElementById('runCalc');
+const calcResult = document.getElementById('calcResult');
+
+/* feedback & profile */
+const fbText = document.getElementById('fbText');
+const sendFb = document.getElementById('sendFb');
+
+/* other inputs */
+const soilType = document.getElementById('soilType');
+const season = document.getElementById('season');
+const landArea = document.getElementById('landArea');
+const waterLevel = document.getElementById('waterLevel');
+
+/* menu mic & mute UI */
+const micBtn = document.getElementById('voiceChatBtn');
+
+/* ========== initialize language buttons ========== */
+function buildLanguageButtons(){
+  LANGUAGES.forEach(lang=>{
+    const b = document.createElement('button');
+    b.className = 'lang-btn';
+    b.textContent = lang.name;
+    b.onclick = ()=> selectLanguage(lang);
+    langGrid.appendChild(b);
+  });
+}
+buildLanguageButtons();
+
+/* ========== speech synthesis setup ========== */
+function loadVoices(){
+  voices = speechSynthesis.getVoices() || [];
+  // try to pick a voice matching the selectedLanguage.code or prefix
+  chooseVoiceForSelectedLanguage();
+  // Also populate voice choices if needed later
+}
+function chooseVoiceForSelectedLanguage(){
+  if(!voices || voices.length===0) return;
+  const code = selectedLanguage.code || '';
+  // exact match
+  selectedVoice = voices.find(v=> v.lang && v.lang.toLowerCase() === code.toLowerCase());
+  if(!selectedVoice){
+    // prefix match: 'hi' matches 'hi-IN'
+    const prefix = code.split('-')[0];
+    selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(prefix));
+  }
+  if(!selectedVoice){
+    // last resort: default voice
+    selectedVoice = voices[0];
+  }
+}
+
+/* load voices (some browsers fire voiceschanged) */
+loadVoices();
+window.speechSynthesis.onvoiceschanged = loadVoices;
+
+/* speak utility */
+function speak(text, langCode){
+  if(isMuted) return;
+  if(!('speechSynthesis' in window)){
+    console.warn('SpeechSynthesis not supported');
+    return;
+  }
+  const u = new SpeechSynthesisUtterance(text);
+  // use selected voice if available
+  if(selectedVoice){
+    u.voice = selectedVoice;
+  } else if(langCode){
+    u.lang = langCode;
+  }
+  // safety: fallback to selectedLanguage code
+  if(!u.lang && selectedLanguage && selectedLanguage.code) u.lang = selectedLanguage.code;
+
+  // small rate change to improve intelligibility for many voices
+  u.rate = 0.95;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+/* ========== Speech recognition (voice to text) ========== */
+let recognition = null;
+let listening = false;
+function initRecognition(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return null;
+  recognition = new SpeechRecognition();
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onresult = (e)=>{
+    const text = e.results[0][0].transcript;
+    onVoiceRecognized(text);
+  };
+  recognition.onerror = (e)=>{
+    console.warn('Speech recognition error', e);
+    if(e.error === 'not-allowed' || e.error==='service-not-allowed') alert('Microphone permission blocked. Allow microphone access for voice chat.');
+    stopListeningUI();
+  };
+  recognition.onend = ()=> {
+    listening = false;
+    stopListeningUI();
+  };
+  return recognition;
+}
+initRecognition();
+
+/* UI helpers for listening state */
+function startListeningUI(){
+  micBtn.classList.add('listening');
+}
+function stopListeningUI(){
+  micBtn.classList.remove('listening');
+}
+
+/* start/stop listening */
+function toggleListening(){
+  if(!recognition){
+    alert('Speech recognition not supported in this browser. Use Chrome desktop for best support.');
+    return;
+  }
+  if(listening){
+    recognition.stop();
+    listening = false;
+    stopListeningUI();
+  } else {
+    try{
+      recognition.lang = selectedLanguage.code || 'en-IN';
+      recognition.start();
+      listening = true;
+      startListeningUI();
+      speak(getLocalizedPhrase('listening'), selectedLanguage.code);
+    }catch(err){
+      console.warn('Could not start recognition', err);
+    }
+  }
+}
+
+/* when voice recognized */
+function onVoiceRecognized(text){
+  stopListeningUI();
+  // Insert recognized text into an appropriate active field, or handle as general command
+  // We will show it in Recommend area text and speak it back
+  const message = `${getLocalizedPhrase('you_said')}: ${text}`;
+  speak(message, selectedLanguage.code);
+  // Basic parsing: if user said soil/clay/water/high etc, we try to fill fields
+  const t = text.toLowerCase();
+  if(t.includes('soil') || t.includes('clay') || t.includes('loam') || t.includes('loamy') || t.includes('sandy')){
+    if(t.includes('clay')) soilType.value='clay';
+    else if(t.includes('sandy')) soilType.value='sandy';
+    else if(t.includes('loamy') || t.includes('loam')) soilType.value='loamy';
+  }
+  if(t.includes('kharif') || t.includes('monsoon')) season.value='kharif';
+  if(t.includes('rabi') || t.includes('winter')) season.value='rabi';
+  if(t.includes('high water') || t.includes('high water') || t.includes('high')) waterLevel.value='high';
+  if(t.includes('medium')) waterLevel.value='medium';
+  if(t.includes('low')) waterLevel.value='low';
+  // numbers for area
+  const numMatch = t.match(/(\d+(\.\d+)?)/);
+  if(numMatch){
+    const num = parseFloat(numMatch[0]);
+    if(!isNaN(num)) landArea.value = num;
+  }
+  // speak recommendation if user said "recommend" or "suggest"
+  if(t.includes('recommend') || t.includes('suggest')){
+    recommendCrop();
+  }
+}
+
+/* ========== Helper: localized phrases (small set) ========== */
+function getLocalizedPhrase(key){
+  // For full multilingual support you'd load translations. Here we provide minimal phrases in a few languages,
+  // otherwise fallback to English.
+  const phrases = {
+    'listening': {
+      'en-IN': 'Listening...',
+      'hi-IN': 'सुन रहा हूँ...',
+      'te-IN': 'వింటే ఉంది...'
+    },
+    'welcome': {
+      'en-IN':'Welcome to Crop Care',
+      'hi-IN':'Crop Care में आपका स्वागत है',
+      'te-IN':'క్రాప్ కేర్‌కు స్వాగతం'
+    },
+    'you_said': {
+      'en-IN': 'You said',
+      'hi-IN': 'आपने कहा',
+      'te-IN': 'మీరు చెప్పారు'
+    },
+    'recommendation_ready': {
+      'en-IN': 'Recommendation ready',
+      'hi-IN': 'सिफारिश तैयार है',
+      'te-IN': 'సిఫార్సు సిద్ధం'
+    }
+  };
+  const code = selectedLanguage.code || 'en-IN';
+  const prefix = code.split('-')[0];
+  if(phrases[key] && phrases[key][code]) return phrases[key][code];
+  // check prefix
+  if(phrases[key] && phrases[key]['en-IN']) return phrases[key]['en-IN'];
+  return '';
+}
+
+/* ========== language selection ========== */
+function selectLanguage(lang){
+  selectedLanguage = lang;
+  document.getElementById('language-screen').style.display = 'none';
+  appDiv.style.display = 'flex';
+  languageScreen.setAttribute('aria-hidden','true');
+  appDiv.setAttribute('aria-hidden','false');
+  // choose voice again
+  chooseVoiceForSelectedLanguage();
+  selectedLanguageDisplay.textContent = lang.name;
+  // speak greeting
+  speak(getLocalizedPhrase('welcome') || `Selected ${lang.name}`, lang.code);
+  // update menu label
+  updateMenuMuteLabel();
+  // ensure calculator crop list updated
+  populateCalculatorCrops();
+}
+
+/* ========== menu / settings ========== */
+threeDotsBtn.addEventListener('click', (e)=>{
+  menu.classList.toggle('show');
+});
+menuChangeLang.addEventListener('click', ()=>{
+  // reopen language screen
+  menu.classList.remove('show');
+  document.getElementById('language-screen').style.display = 'flex';
+  appDiv.style.display = 'none';
+});
+menuToggleMute.addEventListener('click', ()=>{
+  isMuted = !isMuted;
+  updateMenuMuteLabel();
+  if(isMuted){
+    speak(''); // cancel speaking
+    muteIndicator.style.display = 'inline';
+  } else { muteIndicator.style.display = 'none'; }
+});
+menuTerms.addEventListener('click', ()=>{
+  menu.classList.remove('show');
+  const termsText = `Terms: The Crop Care app provides AI-based recommendations as suggestions only. Farmers should verify local suitability and follow safety instructions for pesticides/fertilizers.`;
+  alert(termsText);
+  speak('Showing terms and conditions', selectedLanguage.code);
+});
+menuSettings.addEventListener('click', ()=>{
+  menu.classList.remove('show');
+  const settingsText = `Settings: You can change language, mute/unmute voice, and manage app preferences here.`;
+  alert(settingsText);
+  speak(settingsText, selectedLanguage.code);
+});
+
+function updateMenuMuteLabel(){
+  menuToggleMute.textContent = isMuted ? 'Unmute voice' : 'Mute voice';
+  muteIndicator.style.display = isMuted ? 'inline' : 'none';
+}
+
+/* ========== Recommendation engine (simple heuristic) ========== */
+const CROP_DATABASE = [
+  { name:'Rice', suits:{soil:['clay','silty','loamy'], season:['kharif'], water:'high'}, fertilizerPerHa:120, pesticides:['Stem borer control','Brown plant hopper control'] },
+  { name:'Wheat', suits:{soil:['loamy','silty'], season:['rabi'], water:'medium'}, fertilizerPerHa:100, pesticides:['Weed control (Herbicide)','Rust control'] },
+  { name:'Maize', suits:{soil:['loamy','sandy'], season:['kharif','summer'], water:'medium'}, fertilizerPerHa:110, pesticides:['Fall armyworm control','Stem borer control'] },
+  { name:'Millet', suits:{soil:['sandy','loamy'], season:['summer','autumn'], water:'low'}, fertilizerPerHa:40, pesticides:['Shoot fly control'] },
+  { name:'Pulses', suits:{soil:['loamy','sandy','silty'], season:['rabi','kharif'], water:'low'}, fertilizerPerHa:20, pesticides:['Pod borer control'] },
+  { name:'Sugarcane', suits:{soil:['loamy','clay'], season:['kharif'], water:'high'}, fertilizerPerHa:150, pesticides:['Top borer control'] },
+  { name:'Cotton', suits:{soil:['sandy','loamy'], season:['kharif'], water:'medium'}, fertilizerPerHa:80, pesticides:['Bollworm control','Aphid control'] }
+];
+
+function recommendCrop(){
+  recommendResult.style.display='none';
+  const soil = soilType.value;
+  const sea = season.value;
+  const water = waterLevel.value;
+  const area = parseFloat(landArea.value) || 1;
+
+  // scoring
+  const scored = CROP_DATABASE.map(c=>{
+    let score = 0;
+    if(c.suits.soil.includes(soil)) score += 3;
+    if(c.suits.season.includes(sea)) score += 3;
+    if(c.suits.water === water) score += 2;
+    if(c.suits.water === 'medium' && water==='high') score += 1;
+    return {...c, score};
+  }).sort((a,b)=>b.score - a.score);
+
+  const top = scored[0];
+  if(!top || top.score===0){
+    const msg = getLocalizedPhrase('recommendation_ready') + ': No strong match found. Please try different inputs.';
+    recommendResult.innerHTML = `<strong>${msg}</strong>`;
+    recommendResult.style.display='block';
+    speak(msg, selectedLanguage.code);
+    return;
+  }
+
+  // form result HTML
+  const html = `
+    <div style="font-weight:900; font-size:18px;">Recommended crop: ${top.name}</div>
+    <div style="margin-top:8px; color:var(--muted);">Confidence score: ${top.score} / 8</div>
+    <div style="margin-top:10px;"><strong>Fertilizer suggestion (combined NPK):</strong> approx. ${top.fertilizerPerHa} kg/ha</div>
+    <div style="margin-top:6px;"><strong>Pesticide suggestions:</strong><ul>${top.pesticides.map(p=>`<li>${p}</li>`).join('')}</ul></div>
+    <div style="margin-top:8px;"><strong>For your area:</strong> Area = ${area} ha — total fertilizer ≈ ${Math.round(top.fertilizerPerHa * area)} kg</div>
+  `;
+  recommendResult.innerHTML = html;
+  recommendResult.style.display='block';
+  speak(`${getLocalizedPhrase('recommendation_ready')}: ${top.name}. Fertilizer ${top.fertilizerPerHa} kilos per hectare.`, selectedLanguage.code);
+
+  // also update calculator crop options
+  populateCalculatorCrops(top.name);
+}
+
+recommendBtn.addEventListener('click', ()=>{
+  recommendCrop();
+});
+
+/* ========== Populate calculator crop list ========== */
+function populateCalculatorCrops(preselectName){
+  // ensure unique crops from DB
+  const crops = CROP_DATABASE.map(c=>c.name);
+  // clear
+  calcCropSelect.innerHTML = '';
+  crops.forEach(name=>{
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    calcCropSelect.appendChild(o);
+  });
+  if(preselectName){
+    calcCropSelect.value = preselectName;
+  }
+  updateCalculatorDefaults();
+}
+calcCropSelect.addEventListener('change', updateCalculatorDefaults);
+
+function updateCalculatorDefaults(){
+  const cropName = calcCropSelect.value;
+  const crop = CROP_DATABASE.find(c=>c.name===cropName);
+  if(crop){
+    // simple default guesses
+    seedRateInput.value = cropName==='Rice'? 60 : cropName==='Wheat'? 120 : 50;
+    fertPerHaInput.value = crop.fertilizerPerHa || 100;
+    expectedYieldInput.value = cropName==='Rice'? 4000 : cropName==='Wheat'? 3000 : 2500;
+    marketPriceInput.value = cropName==='Rice'? 1 : cropName==='Wheat'? 1 : 1;
+    inputCostPerHaInput.value = cropName==='Rice'? 300 : 200;
+  }
+}
+
+/* ========== Calculator logic ========== */
+runCalcBtn.addEventListener('click', ()=>{
+  // read inputs
+  const area = parseFloat(document.getElementById('landArea').value) || 1;
+  const seedRate = parseFloat(seedRateInput.value) || 0;
+  const fertPerHa = parseFloat(fertPerHaInput.value) || 0;
+  const expectedYield = parseFloat(expectedYieldInput.value) || 0;
+  const marketPrice = parseFloat(marketPriceInput.value) || 0;
+  const inputCostPerHa = parseFloat(inputCostPerHaInput.value) || 0;
+
+  // compute fertilizer total
+  const totalFertilizerKg = fertPerHa * area;
+  // fertilizer cost - assume a sample price per kg (approx)
+  const fertPricePerKg = 0.5; // placeholder
+  const fertilizerCost = totalFertilizerKg * fertPricePerKg;
+
+  // revenue
+  const totalRevenue = expectedYield * area * marketPrice;
+  const totalInputCost = (inputCostPerHa * area) + fertilizerCost;
+  const profit = totalRevenue - totalInputCost;
+
+  // round carefully (digit-by-digit reliable)
+  function round2(x){ return Math.round(x*100)/100; }
+
+  const html = `
+    <div style="font-weight:900;">Results</div>
+    <div style="margin-top:8px;">Total fertilizer required: <strong>${round2(totalFertilizerKg)}</strong> kg</div>
+    <div style="margin-top:6px;">Estimated fertilizer cost: <strong>₹ ${round2(fertilizerCost)}</strong></div>
+    <div style="margin-top:6px;">Estimated revenue: <strong>₹ ${round2(totalRevenue)}</strong></div>
+    <div style="margin-top:6px;">Estimated total input cost: <strong>₹ ${round2(totalInputCost)}</strong></div>
+    <div style="margin-top:6px;">Estimated profit: <strong>₹ ${round2(profit)}</strong></div>
+  `;
+  calcResult.innerHTML = html;
+  calcResult.style.display='block';
+  speak(`Calculation complete. Estimated profit ${round2(profit)} rupees.`, selectedLanguage.code);
+});
+
+/* ========== Navigation (bottom icons) ========== */
+navItems.forEach(item=>{
+  item.addEventListener('click', ()=>{
+    navItems.forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    const target = item.dataset.target;
+    // hide all pages
+    ['homePage','calculatorPage','feedbackPage','profilePage'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = (id===target)?'block':'none';
+    });
+  });
+});
+
+/* ========== Feedback send ========== */
+sendFb && sendFb.addEventListener('click', ()=>{
+  const text = fbText.value.trim();
+  if(!text) { alert('Please write feedback before sending.'); return; }
+  // For prototype we'll just show thank you
+  alert('Thank you for your feedback!');
+  fbText.value = '';
+  speak('Thank you. Feedback received.', selectedLanguage.code);
+});
+
+/* ========== Voice chat button ========== */
+micBtn.addEventListener('click', ()=>{
+  toggleListening();
+});
+
+/* ========== fill initial UI and logic ========== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // show language screen until user chooses
+  languageScreen.style.display = 'flex';
+  appDiv.style.display = 'none';
+  // initialize voices a bit later if needed
+  setTimeout(()=>{ loadVoices(); }, 500);
+  // prepopulate calculator list
+  populateCalculatorCrops();
+});
+
+/* ========== utility: speak small sample text when selected language changes ========== */
+function sampleSpeakForLanguage(){
+  const phrase = `${getLocalizedPhrase('welcome') || 'Welcome to Crop Care'}. ${selectedLanguage.name}`;
+  speak(phrase, selectedLanguage.code);
+}
+
+/* make selected language display reactive when changed outside */
+function setSelectedLanguageByName(name){
+  const found = LANGUAGES.find(l=>l.name===name);
+  if(found) selectLanguage(found);
+}
+
+/* bind change language entry from menu */
+menuChangeLang.addEventListener('click', ()=> {
+  document.getElementById('language-screen').style.display='flex';
+  appDiv.style.display='none';
+});
+
+/* convenience: clicking outside menu hides it */
+document.addEventListener('click', (e)=>{
+  if(!menu.contains(e.target) && !threeDotsBtn.contains(e.target)){
+    menu.classList.remove('show');
+  }
+});
+
+/* If user picks language then we also call chooseVoice... already handled inside selectLanguage */
+
+/* Some small polish: when user selects language from language screen, also announce in that language if possible */
+/* Already implemented in selectLanguage() */
+
+/* End of script */
+</script>
+</body>
+</html>

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crop Care</title>
+  <style>
+    :root{
+      --primary:#2e8b57;
+      --accent:#ffd166;
+      --bg:#f6fff6;
+      --card:#ffffff;
+      --muted:#6b6b6b;
+      --glass: rgba(255,255,255,0.7);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #f6fff6 0%, #eafbe9 100%);
+      color:#1a1a1a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Top bar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      background:var(--primary);
+      color:white;
+      position:sticky;
+      top:0;
+      z-index:50;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+    .app-title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+      font-size:18px;
+    }
+    .app-title .logo{
+      width:36px; height:36px; border-radius:8px;
+      background: linear-gradient(135deg,#b8e994,#2e8b57);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 2px 6px rgba(46,139,87,0.25);
+      font-weight:700;
+    }
+
+    .menu-btn{
+      background:transparent;
+      border:none;
+      font-size:22px;
+      color:white;
+      cursor:pointer;
+      padding:8px;
+      border-radius:8px;
+    }
+
+    /* Dropdown menu */
+    .dropdown{
+      position:absolute;
+      right:16px;
+      top:64px;
+      background:var(--card);
+      min-width:220px;
+      border-radius:10px;
+      box-shadow:0 8px 24px rgba(15,15,15,0.12);
+      overflow:hidden;
+      display:none;
+      z-index:200;
+    }
+    .dropdown button{
+      width:100%;
+      border:none;
+      background:transparent;
+      padding:12px 14px;
+      text-align:left;
+      cursor:pointer;
+      font-size:15px;
+      color:#222;
+    }
+    .dropdown button:hover{background:#f4f4f4}
+
+    /* Layout */
+    .container{
+      padding:18px;
+      max-width:980px;
+      margin:18px auto;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:16px;
+      box-shadow: 0 6px 18px rgba(32,32,32,0.06);
+      margin-bottom:14px;
+    }
+
+    /* Controls area */
+    .controls{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .btn{
+      padding:12px 16px;
+      background:linear-gradient(180deg,#ffffff, #f0fff0);
+      border:1px solid #e6f3e6;
+      border-radius:10px;
+      min-width:150px;
+      text-align:center;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow: 0 4px 10px rgba(40,120,40,0.05);
+    }
+    .btn.primary{
+      background:linear-gradient(180deg,#2e8b57,#1f6b3f);
+      color:white;
+      border:none;
+      min-width:220px;
+      font-size:16px;
+    }
+
+    /* Input fields */
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    label{font-size:13px;color:var(--muted)}
+    select,input[type="number"], input[type="text"]{
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #e6efe6;
+    }
+
+    /* Bottom nav */
+    .bottom-nav{
+      position:fixed;
+      bottom:12px;
+      left:50%;
+      transform:translateX(-50%);
+      width:calc(100% - 48px);
+      max-width:980px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,250,0.95));
+      border-radius:14px;
+      display:flex;
+      justify-content:space-around;
+      padding:10px 8px;
+      box-shadow: 0 10px 30px rgba(18,18,18,0.08);
+      z-index:60;
+    }
+    .nav-item{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:#333;
+      cursor:pointer;
+    }
+    .nav-item.active{color:var(--primary); font-weight:700}
+
+    /* Microphone floating button */
+    .mic-btn{
+      width:56px;height:56px;border-radius:50%;
+      position:fixed; right:22px; bottom:100px;
+      background:linear-gradient(180deg,#ffefc2,#ffd166);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 8px 20px rgba(0,0,0,0.15);
+      cursor:pointer;
+      z-index:70;
+      border:none;
+    }
+    .mic-icon{font-size:22px}
+
+    /* Pulse when listening */
+    .listening{
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse{
+      0%{box-shadow: 0 0 0 0 rgba(255,209,102,0.8)}
+      70%{box-shadow: 0 0 0 18px rgba(255,209,102,0)}
+      100%{box-shadow: 0 0 0 0 rgba(255,209,102,0)}
+    }
+
+    /* Modal overlays */
+    .modal-backdrop{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(10,10,10,0.45);
+      z-index:180;
+    }
+    .modal{
+      width:94%;
+      max-width:720px;
+      background:var(--card);
+      border-radius:12px;
+      padding:16px;
+      box-shadow:0 20px 40px rgba(10,10,10,0.18);
+    }
+    .modal h3{margin-top:0}
+    .modal .close{
+      float:right; background:transparent;border:none;font-size:18px;cursor:pointer;
+    }
+
+    /* Responsive */
+    @media (max-width:720px){
+      .controls{flex-direction:column; align-items:stretch}
+      .mic-btn{right:12px; bottom:120px}
+      .bottom-nav{width:calc(100% - 24px)}
+    }
+
+    /* small helper */
+    .small-muted{font-size:13px;color:var(--muted)}
+    .row{display:flex;gap:10px;align-items:center}
+    .col{flex:1}
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="app-title">
+      <div class="logo">CC</div>
+      <div>Crop Care</div>
+    </div>
+
+    <button class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false">⋮</button>
+
+    <div class="dropdown card" id="dropdownMenu" role="menu">
+      <button onclick="openLanguageModal()">Change Language</button>
+      <button id="muteToggleBtn" onclick="toggleMute()">Mute Voice</button>
+      <button onclick="openTerms()">Terms &amp; Conditions</button>
+      <button onclick="openSettings()">Settings</button>
+    </div>
+  </div>
+
+  <!-- Main container -->
+  <div class="container">
+    <!-- Controls card -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <h2 style="margin:0 0 6px 0">Recommend best crop</h2>
+          <div class="small-muted">Fill farm data and click Recommend a Crop</div>
+        </div>
+        <div class="small-muted">Voice: <span id="voiceState">On</span></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #eef7ee;margin:12px 0;">
+
+      <div class="controls">
+        <!-- Soil Type -->
+        <div class="field">
+          <label for="soilType">Soil Type</label>
+          <select id="soilType">
+            <option value="loam">Loam</option>
+            <option value="clay">Clay</option>
+            <option value="sandy">Sandy</option>
+            <option value="silty">Silty</option>
+            <option value="peat">Peaty</option>
+          </select>
+        </div>
+
+        <!-- Weather / Season -->
+        <div class="field">
+          <label for="weather">Weather / Season</label>
+          <select id="weather">
+            <option value="kharif">Kharif (Monsoon)</option>
+            <option value="rabi">Rabi (Winter)</option>
+            <option value="zaid">Zaid (Summer)</option>
+            <option value="dry">Dry / Arid</option>
+            <option value="wet">Wet / High Rainfall</option>
+          </select>
+        </div>
+
+        <!-- Farm Data -->
+        <div class="field">
+          <label>Farm Data</label>
+          <div class="row">
+            <input type="number" id="landArea" placeholder="Area (hectares)" min="0" step="0.01" class="col" />
+            <input type="number" id="waterQuantity" placeholder="Water (litres/day)" min="0" step="1" class="col" />
+          </div>
+        </div>
+
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn primary" id="recommendBtn">Recommend a Crop</button>
+        <button class="btn" onclick="openFertilizers()">Soil & Fertilizer Tips</button>
+        <button class="btn" onclick="openWeatherInfo()">Weather Info</button>
+        <button class="btn" onclick="openFarmData()">Farm Data Summary</button>
+      </div>
+
+      <div id="recommendResult" style="margin-top:16px;display:none;" class="small-muted card">
+        <strong>Recommended Crop:</strong> <span id="recCrop" style="font-weight:800;color:var(--primary)"></span>
+        <div style="margin-top:8px" id="recReason"></div>
+      </div>
+    </div>
+
+    <!-- Fertilizers & Pesticides (default hidden) -->
+    <div id="fertilizersCard" class="card" style="display:none;">
+      <h3 style="margin-top:0">Fertilizers &amp; Pesticides</h3>
+      <div id="fertList" class="small-muted">Select crop to see suggestions</div>
+    </div>
+
+    <!-- Calculator -->
+    <div id="calculatorCard" class="card" style="display:none;">
+      <h3 style="margin-top:0">Farmer Profit Calculator</h3>
+      <div class="row">
+        <div class="col field">
+          <label>Crop</label>
+          <input type="text" id="calcCrop" placeholder="Crop name (e.g., Rice)" />
+        </div>
+        <div class="col field">
+          <label>Area (hectares)</label>
+          <input type="number" id="calcArea" step="0.01" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="col field">
+          <label>Expected yield (q/ha)</label>
+          <input type="number" id="calcYield" placeholder="quintals per hectare" />
+        </div>
+        <div class="col field">
+          <label>Market price (₹ per quintal)</label>
+          <input type="number" id="calcPrice" placeholder="₹" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="col field">
+          <label>Total cost (seed/fertilizer/labor) ₹</label>
+          <input type="number" id="calcCost" placeholder="Total cost" />
+        </div>
+        <div style="align-self:end">
+          <button class="btn primary" onclick="calculateProfit()">Calculate Profit</button>
+        </div>
+      </div>
+
+      <div id="calcResult" style="margin-top:12px;display:none;" class="small-muted card"></div>
+    </div>
+
+    <!-- Profile -->
+    <div id="profileCard" class="card" style="display:none;">
+      <h3 style="margin-top:0">Farmer Profile</h3>
+      <div class="field"><label>Name</label><input type="text" id="farmerName" placeholder="Farmer name" /></div>
+      <div class="row" style="margin-top:8px">
+        <div class="col field"><label>Age</label><input type="number" id="farmerAge" /></div>
+        <div class="col field"><label>Location</label><input type="text" id="farmerLocation" /></div>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn primary" onclick="saveProfile()">Save Profile</button>
+      </div>
+      <div id="profileInfo" style="margin-top:12px;display:none;"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom navigation -->
+  <div class="bottom-nav" role="navigation" aria-label="Main menu">
+    <div class="nav-item active" id="navHome" onclick="showSection('home')">
+      <div>🏠</div>
+      <div>Home</div>
+    </div>
+    <div class="nav-item" id="navFert" onclick="showSection('fert')">
+      <div>🧪</div>
+      <div>Fertilizers</div>
+    </div>
+    <div class="nav-item" id="navCalc" onclick="showSection('calc')">
+      <div>🧮</div>
+      <div>Calculator</div>
+    </div>
+    <div class="nav-item" id="navProfile" onclick="showSection('profile')">
+      <div>👤</div>
+      <div>Profile</div>
+    </div>
+  </div>
+
+  <!-- Mic button -->
+  <button class="mic-btn" id="micBtn" title="Voice Assistant" aria-pressed="false">
+    <div class="mic-icon" id="micIcon">🎙️</div>
+  </button>
+
+  <!-- Language Modal -->
+  <div class="modal-backdrop" id="langModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="langTitle">
+      <button class="close" onclick="closeLanguageModal()">✕</button>
+      <h3 id="langTitle">Select Language</h3>
+      <p class="small-muted">Choose your preferred language for the app and voice assistant.</p>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+        <!-- Many Indian languages -->
+        <button class="btn" onclick="changeLanguage('English')">English</button>
+        <button class="btn" onclick="changeLanguage('Hindi')">Hindi</button>
+        <button class="btn" onclick="changeLanguage('Bengali')">Bengali</button>
+        <button class="btn" onclick="changeLanguage('Telugu')">Telugu</button>
+        <button class="btn" onclick="changeLanguage('Marathi')">Marathi</button>
+        <button class="btn" onclick="changeLanguage('Tamil')">Tamil</button>
+        <button class="btn" onclick="changeLanguage('Gujarati')">Gujarati</button>
+        <button class="btn" onclick="changeLanguage('Kannada')">Kannada</button>
+        <button class="btn" onclick="changeLanguage('Malayalam')">Malayalam</button>
+        <button class="btn" onclick="changeLanguage('Odia')">Odia</button>
+        <button class="btn" onclick="changeLanguage('Punjabi')">Punjabi</button>
+        <button class="btn" onclick="changeLanguage('Assamese')">Assamese</button>
+        <button class="btn" onclick="changeLanguage('Urdu')">Urdu</button>
+        <button class="btn" onclick="changeLanguage('English (UK)')">English (UK)</button>
+      </div>
+
+      <div style="margin-top:12px;text-align:right">
+        <button class="btn" onclick="closeLanguageModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms modal -->
+  <div class="modal-backdrop" id="termsModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <button class="close" onclick="closeTerms()">✕</button>
+      <h3 id="termsTitle">Terms &amp; Conditions - Crop Care</h3>
+      <div class="small-muted" style="margin-top:8px;line-height:1.5">
+        <strong>Usage:</strong> Crop Care provides AI-based crop recommendations intended to assist farmers in selecting crops suited to their soil, water availability, and seasonal conditions.<br><br>
+        <strong>Disclaimer:</strong> Recommendations are generated using a rule-based AI demo and agronomic heuristics. They are advisory only. Always consult a certified local agricultural extension officer before making major planting decisions. Crop Care is not liable for losses resulting from following in-app recommendations.<br><br>
+        <strong>Data:</strong> Any farm details entered (soil type, land area, water) are stored locally in your browser (for demo). Do not enter sensitive personal information.<br><br>
+        <strong>Improvements:</strong> We plan to improve recommendations with field data and models. By using the app you acknowledge the current suggestions are experimental and should be validated locally.
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button class="btn" onclick="closeTerms()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button class="close" onclick="closeSettings()">✕</button>
+      <h3 id="settingsTitle">Settings</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <div style="min-width:250px" class="field">
+          <label>Voice Assistant Language</label>
+          <select id="voiceLang">
+            <option>en-US</option>
+            <option>hi-IN</option>
+            <option>en-GB</option>
+          </select>
+        </div>
+        <div style="min-width:250px" class="field">
+          <label>Voice Rate</label>
+          <input type="range" id="voiceRate" min="0.6" max="1.4" step="0.05" value="1" />
+        </div>
+        <div style="min-width:250px" class="field">
+          <label>Assistant Volume</label>
+          <input type="range" id="voiceVol" min="0" max="1" step="0.05" value="1" />
+        </div>
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button class="btn" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Transcript Modal -->
+  <div class="modal-backdrop" id="voiceTranscriptModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="close" onclick="closeTranscript()">✕</button>
+      <h3>Voice Assistant</h3>
+      <div class="small-muted" style="margin-top:8px">
+        <strong>Transcript:</strong>
+        <div id="transcriptText" style="margin-top:10px;padding:12px;background:#fbfff8;border-radius:8px;min-height:80px"></div>
+        <div style="margin-top:12px;text-align:right">
+          <button class="btn" onclick="closeTranscript()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*********************
+     * State & Utilities *
+     *********************/
+    let voiceEnabled = true;
+    let listening = false;
+    let selectedLanguage = 'English';
+    let voiceSettings = {lang:'en-US', rate:1, volume:1};
+
+    // DOM
+    const dropdown = document.getElementById('dropdownMenu');
+    const menuBtn = document.getElementById('menuBtn');
+
+    menuBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+      menuBtn.setAttribute('aria-expanded', dropdown.style.display === 'block');
+    });
+    window.addEventListener('click', ()=>{ dropdown.style.display = 'none'; });
+
+    // quick helper to speak
+    function speak(text){
+      if(!voiceEnabled) return;
+      if(!window.speechSynthesis) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = voiceSettings.lang || 'en-US';
+      u.rate = voiceSettings.rate || 1;
+      u.volume = voiceSettings.volume ?? 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    }
+
+    /*******************
+     * Language Modal  *
+     *******************/
+    function openLanguageModal(){ document.getElementById('langModal').style.display='flex'; dropdown.style.display='none'; speak('Open language selection'); }
+    function closeLanguageModal(){ document.getElementById('langModal').style.display='none'; }
+    function changeLanguage(lang){
+      selectedLanguage = lang;
+      // Map some language to voice lang codes
+      if(lang.includes('Hindi')) voiceSettings.lang = 'hi-IN';
+      else if(lang.includes('English')) voiceSettings.lang = 'en-US';
+      else if(lang.includes('UK')) voiceSettings.lang = 'en-GB';
+      else voiceSettings.lang = 'en-US';
+      document.getElementById('voiceState').textContent = voiceEnabled ? 'On' : 'Muted';
+      speak('Language changed to ' + lang);
+      closeLanguageModal();
+    }
+
+    /*******************
+     * Mute toggle     *
+     *******************/
+    function toggleMute(){
+      voiceEnabled = !voiceEnabled;
+      document.getElementById('voiceState').textContent = voiceEnabled ? 'On' : 'Muted';
+      document.getElementById('muteToggleBtn').textContent = voiceEnabled ? 'Mute Voice' : 'Unmute Voice';
+      speak(voiceEnabled ? 'Voice enabled' : 'Voice muted');
+      dropdown.style.display='none';
+    }
+
+    /*******************
+     * Terms & Settings*
+     *******************/
+    function openTerms(){ document.getElementById('termsModal').style.display='flex'; dropdown.style.display='none'; speak('Opening terms and conditions'); }
+    function closeTerms(){ document.getElementById('termsModal').style.display='none'; }
+
+    function openSettings(){ document.getElementById('settingsModal').style.display='flex'; dropdown.style.display='none'; speak('Opening settings'); }
+    function closeSettings(){ document.getElementById('settingsModal').style.display='none'; }
+    function saveSettings(){
+      voiceSettings.lang = document.getElementById('voiceLang').value;
+      voiceSettings.rate = parseFloat(document.getElementById('voiceRate').value);
+      voiceSettings.volume = parseFloat(document.getElementById('voiceVol').value);
+      speak('Settings saved');
+      closeSettings();
+    }
+
+    /************************
+     * Recommend a crop logic
+     ************************/
+    const recommendBtn = document.getElementById('recommendBtn');
+    recommendBtn.addEventListener('click', recommendCrop);
+
+    function recommendCrop(){
+      const soil = document.getElementById('soilType').value;
+      const weather = document.getElementById('weather').value;
+      const area = parseFloat(document.getElementById('landArea').value) || 0;
+      const water = parseFloat(document.getElementById('waterQuantity').value) || 0;
+
+      // Basic rule-based suggestions (demo)
+      let crop = 'Maize';
+      let reason = [];
+
+      // soil influence
+      if(soil === 'loam') reason.push('Loam soil is versatile and supports many crops.');
+      if(soil === 'clay') reason.push('Clay retains water — good for paddy (rice).');
+      if(soil === 'sandy') reason.push('Sandy soil drains quickly — suited to groundnut, millet.');
+      if(soil === 'silty') reason.push('Silty soil is fertile — good for vegetables and rice.');
+      if(soil === 'peat') reason.push('Peaty soil is acidic and moisture-rich — suited to tuber crops.');
+
+      // weather influence
+      if(weather === 'kharif'){ // monsoon
+        if(soil === 'clay' || water > 5000) crop = 'Rice';
+        else if(soil === 'sandy') crop = 'Pearl Millet';
+        else crop = 'Maize';
+        reason.push('Monsoon season (Kharif) favors Rice/Maize.');
+      } else if(weather === 'rabi'){ // winter
+        if(soil === 'loam') crop = 'Wheat';
+        else crop = 'Mustard';
+        reason.push('Rabi season favors Wheat and Oilseeds.');
+      } else if(weather === 'zaid'){
+        crop = 'Watermelon';
+        reason.push('Zaid (summer) favors short-duration fruits like Watermelon.');
+      } else if(weather === 'dry'){
+        crop = 'Millets (Bajra, Jowar)';
+        reason.push('Dry/arid conditions — millets are drought-tolerant.');
+      } else if(weather === 'wet'){
+        crop = (soil==='sandy'?'Sugarcane':'Rice');
+        reason.push('Wet/high rainfall favors Rice or Sugarcane.');
+      }
+
+      // water checks
+      if(water < 1000 && crop === 'Rice') {
+        reason.push('Low water supplied; consider switching from Rice to Millets.');
+        crop = 'Millets (Bajra)';
+      }
+
+      // area consideration
+      if(area > 10 && crop === 'Watermelon') reason.push('Large area available — watermelon cultivation may be commercial.');
+      if(area < 0.5) reason.push('Small area — consider kitchen gardening/vegetables.');
+
+      // Output
+      document.getElementById('recCrop').textContent = crop;
+      document.getElementById('recReason').innerHTML = reason.map(r=>`• ${r}`).join('<br>');
+      document.getElementById('recommendResult').style.display='block';
+
+      speak('Recommended crop is ' + crop + '. Check details on screen.');
+      // also populate fertilizers section for the crop
+      showFertilizerForCrop(crop);
+    }
+
+    /***************************
+     * Fertilizers & pesticides
+     ***************************/
+    const fertData = {
+      "Rice": {
+        fertilizers: ["Nitrogen (Urea) at transplanting and tillering", "Phosphorus (DAP) at planting", "Potash (MOP) as top dressing"],
+        pesticides: ["Brown planthopper management: use pheromone traps, apply recommended insecticides", "Blast: use resistant varieties and balanced N"]
+      },
+      "Maize": {
+        fertilizers: ["Balanced NPK with more nitrogen", "Apply Zinc if deficient"],
+        pesticides: ["Stem borer management: pheromone traps, biological control"]
+      },
+      "Wheat": {
+        fertilizers: ["Basal Phosphorus & Potash; split Nitrogen application"],
+        pesticides: ["Rust control: resistant varieties, timely fungicide application"]
+      },
+      "Millets (Bajra, Jowar)": {
+        fertilizers: ["Light N application; Phosphorus at sowing"],
+        pesticides: ["Minor pests: use biopesticides and cultural control"]
+      },
+      "Pearl Millet": {
+        fertilizers:["Low to moderate N; P at sowing"],
+        pesticides:["Stem borer controls and weeding"]
+      },
+      "Mustard": {
+        fertilizers:["Phosphorus & Sulphur important; balanced N"],
+        pesticides:["Mustard aphid management: early sowing and insecticide if threshold exceeded"]
+      },
+      "Watermelon": {
+        fertilizers:["Fertilize with compost, phosphorus for fruiting; balanced N"],
+        pesticides:["Fruit fly traps, fungal disease management"]
+      },
+      "Sugarcane": {
+        fertilizers:["Split N application; apply potassium"],
+        pesticides:["Borer control and ratoon management"]
+      }
+    };
+
+    function openFertilizers(){ showSection('fert'); speak('Opening fertilizers and pesticides suggestions'); }
+    function showFertilizerForCrop(crop){
+      const card = document.getElementById('fertilizersCard');
+      card.style.display='block';
+      const list = document.getElementById('fertList');
+
+      // try to pick best match
+      let key = crop;
+      if(!fertData[key]){
+        // some fuzzy handling
+        if(crop.includes('Millet')) key = 'Millets (Bajra, Jowar)';
+        else if(crop.includes('Pearl')) key = 'Pearl Millet';
+        else key = Object.keys(fertData)[0];
+      }
+      const info = fertData[key];
+      let html = `<strong>${key}</strong><div style="margin-top:8px">`;
+      html += `<u>Fertilizers</u>:<ul>`;
+      info.fertilizers.forEach(f=> html += `<li>${f}</li>`);
+      html += `</ul>`;
+      html += `<u>Pesticides & Management</u>:<ul>`;
+      info.pesticides.forEach(p=> html += `<li>${p}</li>`);
+      html += `</ul></div>`;
+      list.innerHTML = html;
+    }
+
+    /*******************
+     * Weather Info demo
+     *******************/
+    function openWeatherInfo(){
+      // Demo text - production app should fetch local forecast via API
+      const content = `Weather info: This demo does not fetch live weather. In a real app we'd query a weather API using your location and show forecasts, rainfall probability, and irrigation advice.`;
+      alert(content);
+      speak('Weather info opened. For demo, no live weather is available.');
+    }
+
+    function openFarmData(){
+      const area = document.getElementById('landArea').value || 0;
+      const water = document.getElementById('waterQuantity').value || 0;
+      const soil = document.getElementById('soilType').value;
+      const text = `Farm summary — Area: ${area} hectares. Water: ${water} litres/day. Soil: ${soil}.`;
+      alert(text);
+      speak('Opening farm data summary');
+    }
+
+    /************************
+     * Navigation & sections
+     ************************/
+    function showSection(section){
+      // hide all major cards except main card (home) which is always visible
+      const fert = document.getElementById('fertilizersCard');
+      const calc = document.getElementById('calculatorCard');
+      const prof = document.getElementById('profileCard');
+
+      fert.style.display = 'none';
+      calc.style.display = 'none';
+      prof.style.display = 'none';
+      // nav active states
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+
+      if(section === 'home'){
+        document.getElementById('navHome').classList.add('active');
+      } else if(section === 'fert'){
+        document.getElementById('navFert').classList.add('active');
+        fert.style.display = 'block';
+      } else if(section === 'calc'){
+        document.getElementById('navCalc').classList.add('active');
+        calc.style.display = 'block';
+      } else if(section === 'profile'){
+        document.getElementById('navProfile').classList.add('active');
+        prof.style.display = 'block';
+      }
+    }
+
+    /********************
+     * Calculator logic
+     ********************/
+    function calculateProfit(){
+      const crop = document.getElementById('calcCrop').value || 'Crop';
+      const area = parseFloat(document.getElementById('calcArea').value) || 0;
+      const yph = parseFloat(document.getElementById('calcYield').value) || 0; // quintals per hectare
+      const price = parseFloat(document.getElementById('calcPrice').value) || 0; // ₹ per quintal
+      const cost = parseFloat(document.getElementById('calcCost').value) || 0;
+
+      // revenue = area * yph * price
+      const revenue = area * yph * price;
+      const profit = revenue - cost;
+      const roi = cost > 0 ? (profit / cost * 100) : (profit > 0 ? Infinity : 0);
+
+      const out = `<div><strong>${crop}</strong> — Revenue: ₹${revenue.toFixed(2)} <br> Total cost: ₹${cost.toFixed(2)} <br> Estimated profit: ₹${profit.toFixed(2)} <br> ROI: ${isFinite(roi) ? roi.toFixed(1)+'%' : '—'}</div>`;
+      const resEl = document.getElementById('calcResult');
+      resEl.innerHTML = out;
+      resEl.style.display = 'block';
+      speak('Profit calculated. Check the result on screen.');
+    }
+
+    /********************
+     * Profile handling
+     ********************/
+    function saveProfile(){
+      const name = document.getElementById('farmerName').value || '';
+      const age = document.getElementById('farmerAge').value || '';
+      const loc = document.getElementById('farmerLocation').value || '';
+      if(!name){ alert('Please enter name'); return; }
+      // For demo, save to localStorage
+      const profile = {name,age,loc};
+      localStorage.setItem('cropcare_profile', JSON.stringify(profile));
+      const pi = document.getElementById('profileInfo');
+      pi.style.display='block';
+      pi.innerHTML = `<strong>Saved profile:</strong><div>${name} — Age ${age} — ${loc}</div>`;
+      speak('Profile saved');
+    }
+    // on load, populate
+    (function loadProfile(){
+      const p = localStorage.getItem('cropcare_profile');
+      if(p){
+        const obj = JSON.parse(p);
+        document.getElementById('farmerName').value = obj.name || '';
+        document.getElementById('farmerAge').value = obj.age || '';
+        document.getElementById('farmerLocation').value = obj.loc || '';
+        document.getElementById('profileInfo').style.display = 'block';
+        document.getElementById('profileInfo').innerHTML = `<strong>Saved profile:</strong><div>${obj.name} — Age ${obj.age} — ${obj.loc}</div>`;
+      }
+    })();
+
+    /*****************************
+     * Voice Assistant (Speech API)
+     *****************************/
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = document.getElementById('micIcon');
+    const transcriptText = document.getElementById('transcriptText');
+
+    // Set up Speech Recognition (vendor prefixes)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    let recognition = null;
+    if(SpeechRecognition){
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = voiceSettings.lang || 'en-US';
+
+      recognition.onstart = () => { listening = true; micBtn.classList.add('listening'); micBtn.setAttribute('aria-pressed','true'); };
+      recognition.onend = () => { listening = false; micBtn.classList.remove('listening'); micBtn.setAttribute('aria-pressed','false'); };
+      recognition.onerror = (e) => { console.error('Speech error', e); listening=false; micBtn.classList.remove('listening'); };
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript.trim();
+        transcriptText.innerHTML = `<div>${text}</div>` + transcriptText.innerHTML;
+        interpretVoiceCommand(text);
+      };
+    } else {
+      // fallback - no recognition available
+      console.log('SpeechRecognition not supported in this browser');
+    }
+
+    // mic click toggles listening
+    micBtn.addEventListener('click', ()=>{
+      if(!recognition){
+        alert('Voice recognition not supported in this browser.');
+        return;
+      }
+      if(listening){
+        recognition.stop();
+        listening=false;
+      } else {
+        recognition.lang = voiceSettings.lang || 'en-US';
+        recognition.start();
+      }
+      // show transcript modal:
+      document.getElementById('voiceTranscriptModal').style.display='flex';
+    });
+
+    function closeTranscript(){ document.getElementById('voiceTranscriptModal').style.display='none'; }
+
+    // Interpret simple voice commands:
+    function interpretVoiceCommand(text){
+      const t = text.toLowerCase();
+      // commands: change language, recommend crop, open fertilizers, open calculator, calculate profit, mute/unmute, save profile
+      if(t.includes('language') && (t.includes('to') || t.includes('change'))){
+        // try to find a language name in text
+        const langs = ['hindi','english','telugu','marathi','tamil','bengali','gujarati','kannada','malayalam','punjabi','urdu','odia','assamese'];
+        const found = langs.find(l => t.includes(l));
+        if(found){
+          changeLanguage(capitalize(found));
+          addTranscript('Changed language to ' + capitalize(found));
+          return;
+        } else {
+          openLanguageModal();
+          addTranscript('Opening language selector');
+          return;
+        }
+      }
+      if(t.includes('recommend') || t.includes('best crop') || t.includes('what crop')){
+        recommendCrop();
+        addTranscript('Recommended a crop based on entered data');
+        return;
+      }
+      if(t.includes('fertilizer') || t.includes('pesticide') || t.includes('fertilizers')){
+        openFertilizers();
+        addTranscript('Opening fertilizer and pesticide suggestions');
+        return;
+      }
+      if(t.includes('calculator') || t.includes('calculate profit') || t.includes('profit')){
+        showSection('calc');
+        addTranscript('Opening profit calculator');
+        return;
+      }
+      if(t.includes('mute') || t.includes('silence')){
+        if(voiceEnabled){ toggleMute(); addTranscript('Muted voice'); } else { addTranscript('Voice already muted'); }
+        return;
+      }
+      if(t.includes('unmute')){
+        if(!voiceEnabled){ toggleMute(); addTranscript('Unmuted voice'); } else { addTranscript('Voice already on'); }
+        return;
+      }
+      if(t.includes('profile') && t.includes('save')){
+        saveProfile();
+        addTranscript('Saved profile');
+        return;
+      }
+
+      // small examples like "set soil to clay", "set water to 2000"
+      if(t.includes('soil') && t.includes('clay')) { document.getElementById('soilType').value='clay'; addTranscript('Soil set to clay'); speak('Soil set to clay'); return; }
+      if(t.includes('soil') && t.includes('loam')) { document.getElementById('soilType').value='loam'; addTranscript('Soil set to loam'); speak('Soil set to loam'); return; }
+      // water set:
+      const waterMatch = t.match(/water\s+(\d{2,6})/);
+      if(waterMatch){
+        document.getElementById('waterQuantity').value = parseInt(waterMatch[1],10);
+        addTranscript('Water set to ' + waterMatch[1]);
+        speak('Water set to ' + waterMatch[1] + ' litres per day.');
+        return;
+      }
+
+      // fallback
+      addTranscript('Sorry, I did not understand: "'+text+'". Try: "Recommend crop", "Change language to Hindi", "Open fertilizers", "Calculate profit".');
+      speak('Sorry, I did not understand. Try say recommend crop or change language to hindi.');
+    }
+
+    function addTranscript(txt){
+      const el = document.getElementById('transcriptText');
+      el.innerHTML = `<div style="margin-bottom:8px">• ${txt}</div>` + el.innerHTML;
+    }
+    function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    /*******************
+     * Misc / UI events
+     *******************/
+    // Hide modals initially
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.style.display = 'none');
+
+    // Close when clicking backdrop (but not when clicking modal)
+    document.querySelectorAll('.modal-backdrop').forEach(el=>{
+      el.addEventListener('click', (e)=> {
+        if(e.target === el) el.style.display = 'none';
+      });
+    });
+
+    // initial voice state
+    document.getElementById('voiceState').textContent = voiceEnabled ? 'On' : 'Muted';
+    document.getElementById('muteToggleBtn').textContent = voiceEnabled ? 'Mute Voice' : 'Unmute Voice';
+
+    // expose some functions to window for inline buttons
+    window.openLanguageModal = openLanguageModal;
+    window.closeLanguageModal = closeLanguageModal;
+    window.toggleMute = toggleMute;
+    window.openTerms = openTerms;
+    window.closeTerms = closeTerms;
+    window.openSettings = openSettings;
+    window.closeSettings = closeSettings;
+    window.recommendCrop = recommendCrop;
+    window.openFertilizers = openFertilizers;
+    window.openWeatherInfo = openWeatherInfo;
+    window.openFarmData = openFarmData;
+    window.showSection = showSection;
+    window.calculateProfit = calculateProfit;
+    window.saveProfile = saveProfile;
+    window.openTranscript = ()=> document.getElementById('voiceTranscriptModal').style.display='flex';
+    window.closeTranscript = closeTranscript;
+
+    // small helper: when user types crop in calculator, show fertilizer suggestions
+    document.getElementById('calcCrop').addEventListener('blur', (e)=>{
+      const c = e.target.value;
+      if(c) showFertilizerForCrop(c);
+    });
+
+    // initial greeting
+    setTimeout(()=> speak('Welcome to Crop Care. Use the menu or the microphone to interact.'), 700);
+  </script>
+</body>
+</html>
